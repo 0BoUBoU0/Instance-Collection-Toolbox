@@ -7,7 +7,7 @@ bl_info = {
     "warning": "",
     "category": "Workflow",
     "blender": (2,91,0),
-    "version": (1,4,92)
+    "version": (1,5,11)
 }
 
 # get addon name and version to use them automaticaly in the addon
@@ -52,8 +52,9 @@ coll_color_options = [
                         ]
 coll_center_options = [
                 ("World", "World Origin", "collection center at (0,0,0)",0),
-                ("Collection Center", "Collection Center", "collection center at center of selected objects",1),
-                ("Coll_except_Z", "Collection Center with Z on the floor", "collection center at center of selected objects, but z = 0",2),
+                ("2D Cursor","2D Cursor","position of the 2D cursor",1),
+                ("Collection Center", "Collection Center", "collection center at center of selected objects",2),
+                ("Coll_except_Z", "Collection Center with Z on the floor", "collection center at center of selected objects, but z = 0",3),
                 ]
 
 ## define addon preferences
@@ -263,13 +264,14 @@ class OBJECT_OT_instcoll_seltoinstancecollection(bpy.types.Operator):
     coll_color_prop : bpy.props.EnumProperty(items = coll_color_options, name = "Collection color", description = "Give the created collection a random color", default = 0,)
     coll_original_location_prop: bpy.props.BoolProperty(name = 'Keep original location',description = "Keep the original location of selected elements",default = True)
     coll_center_prop : bpy.props.EnumProperty(items = coll_center_options,name = "Collection center",description = "collection center",default=2,)
-
+    storeAsset_prop: bpy.props.BoolProperty(name = 'Store in Asset Browser',description = "if checked, store in asset browser",default = True)
     
     def execute(self, context):
         print(f"\n {separator} Begin {Addon_Name} - {tool_f} {separator} \n")
         
         coll_center_prop = self.coll_center_prop
         coll_original_location_prop = self.coll_original_location_prop
+        storeAsset_prop = self.storeAsset_prop
         
         #get preferences
         user_label_pref = bpy.context.preferences.addons[__name__].preferences.user_label_pref
@@ -328,8 +330,9 @@ class OBJECT_OT_instcoll_seltoinstancecollection(bpy.types.Operator):
                 bpy.data.collections[new_coll_name].objects.link(bpy.data.objects[obj.name])
 
             # create selection offset from each collection
-            if coll_center_prop == "Coll_except_Z" or coll_center_prop == "Collection Center": 
-                if len(selected_obj)>0:
+            if len(selected_obj)>0:
+                if coll_center_prop == "Coll_except_Z" or coll_center_prop == "Collection Center": 
+                
                     for obj in selected_obj:
                         sel_loc_x.append(obj.location.x)
                         sel_loc_y.append(obj.location.y)
@@ -337,16 +340,20 @@ class OBJECT_OT_instcoll_seltoinstancecollection(bpy.types.Operator):
                     med_sel_x = mean(sel_loc_x)
                     med_sel_y = mean(sel_loc_y)
                     med_sel_z = mean(sel_loc_z)
-                if coll_center_prop == "Coll_except_Z":
+                    if coll_center_prop == "Coll_except_Z":
+                        coord_z = 0
+                    if coll_center_prop == "Collection Center":
+                        coord_z = med_sel_z
+                elif coll_center_prop == "2D Cursor":
+                    med_sel_x =  bpy.context.scene.cursor.location[0]
+                    med_sel_y = bpy.context.scene.cursor.location[1]
+                    coord_z = bpy.context.scene.cursor.location[2]
+                elif coll_center_prop == "World":
+                    med_sel_x = 0
+                    med_sel_y = 0
                     coord_z = 0
-                if coll_center_prop == "Collection Center":
-                    coord_z = med_sel_z   
-            elif coll_center_prop == "World":
-                med_sel_x = 0
-                med_sel_y = 0
-                coord_z = 0
-                bpy.data.collections[new_coll_name].instance_offset = (0,0,0)
-            bpy.data.collections[new_coll_name].instance_offset = (med_sel_x,med_sel_y,coord_z)
+                    bpy.data.collections[new_coll_name].instance_offset = (0,0,0)
+                bpy.data.collections[new_coll_name].instance_offset = (med_sel_x,med_sel_y,coord_z)
                 
             # unlink new collection from scene
             bpy.context.scene.collection.children.unlink(bpy.data.collections[new_coll_name])
@@ -370,7 +377,8 @@ class OBJECT_OT_instcoll_seltoinstancecollection(bpy.types.Operator):
             create_libraryScene_func(new_coll_name)
 
             # store in asset browser
-            storeIn_AssetBrowser_func(new_coll_name)
+            if storeAsset_prop:
+                storeIn_AssetBrowser_func(new_coll_name)
 
             # reset the collection name
             self.instcol_newColName = default_coll_name        
@@ -396,12 +404,7 @@ class OBJECT_OT_instcoll_colltoinstancecollection(bpy.types.Operator):
     # # redo panel = user interraction
     
     coll_color_prop : bpy.props.EnumProperty(items = coll_color_options,name = "Collection color",description = "Give the created collection a random color",default = 1,)
-    coll_center_index = [
-                   ("World", "World Origin", "collection center at (0,0,0)",0),
-                   ("Collection Center", "Collection Center", "collection center at center of selected objects",1),
-                   ("Coll_except_Z", "Collection Center with Z on the floor", "collection center at center of selected objects, but z = 0",2),
-                   ]
-    coll_center : bpy.props.EnumProperty(items = coll_center_index,name = "Collection center",description = "collection center",default=2,)
+    coll_center_prop : bpy.props.EnumProperty(items = coll_center_options,name = "Collection center",description = "collection center",default=2,)
     coll_original_location: bpy.props.BoolProperty(name = 'Keep original location',description = "Keep the original location of selected elements",default = True)
     #instcol_storeintotherandomlibrary: bpy.props.BoolProperty(name = 'Store copy into "Randomize Library"',description = "Store the newly created collection into the randomize library",default = False)
     #suffix_randomizelibrary : bpy.props.StringProperty(name = "RandomizeLibrary_",description = "add a suffix to the library collection",default="ALL",    ) 
@@ -409,6 +412,8 @@ class OBJECT_OT_instcoll_colltoinstancecollection(bpy.types.Operator):
     
     def execute(self, context):
         print(f"\n {separator} Begin {Addon_Name} - {tool_f} {separator} \n")
+
+        coll_center_prop = self.coll_center_prop
         
         # get active collection
         active_coll = bpy.context.view_layer.active_layer_collection
@@ -460,21 +465,30 @@ class OBJECT_OT_instcoll_colltoinstancecollection(bpy.types.Operator):
             bpy.data.collections[new_coll_name].objects.link(bpy.data.objects[obj.name])
 
         # create selection offset from each collection
-        #print(self.coll_center)
-        if self.coll_center != "World":  
-            if len(selected_obj)>0:
-                for obj in selected_obj:
-                    sel_loc_x.append(obj.location.x)
-                    sel_loc_y.append(obj.location.y)
-                    sel_loc_z.append(obj.location.z)
-                med_sel_x = mean(sel_loc_x)
-                med_sel_y = mean(sel_loc_y)
-                med_sel_z = mean(sel_loc_z)
-                if self.coll_center == "Coll_except_Z":
+        if len(selected_obj)>0:
+                if coll_center_prop == "Coll_except_Z" or coll_center_prop == "Collection Center": 
+                
+                    for obj in selected_obj:
+                        sel_loc_x.append(obj.location.x)
+                        sel_loc_y.append(obj.location.y)
+                        sel_loc_z.append(obj.location.z)
+                    med_sel_x = mean(sel_loc_x)
+                    med_sel_y = mean(sel_loc_y)
+                    med_sel_z = mean(sel_loc_z)
+                    if coll_center_prop == "Coll_except_Z":
+                        coord_z = 0
+                    if coll_center_prop == "Collection Center":
+                        coord_z = med_sel_z
+                elif coll_center_prop == "2D Cursor":
+                    med_sel_x =  bpy.context.scene.cursor.location[0]
+                    med_sel_y = bpy.context.scene.cursor.location[1]
+                    coord_z = bpy.context.scene.cursor.location[2]
+                elif coll_center_prop == "World":
+                    med_sel_x = 0
+                    med_sel_y = 0
                     coord_z = 0
-                else:
-                    coord_z = med_sel_z
-            bpy.data.collections[new_coll_name].instance_offset = (med_sel_x,med_sel_y,coord_z)
+                    bpy.data.collections[new_coll_name].instance_offset = (0,0,0)
+                bpy.data.collections[new_coll_name].instance_offset = (med_sel_x,med_sel_y,coord_z)
 
         # unlink new collection from scene
         bpy.context.scene.collection.children.unlink(bpy.data.collections[new_coll_name])
