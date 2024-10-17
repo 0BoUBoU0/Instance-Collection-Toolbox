@@ -7,7 +7,7 @@ bl_info = {
     "warning": "",
     "category": "Workflow",
     "blender": (2,91,0),
-    "version": (1,5,12)
+    "version": (1,5,21)
 }
 
 # get addon name and version to use them automaticaly in the addon
@@ -276,7 +276,7 @@ class OBJECT_OT_instcoll_seltoinstancecollection(bpy.types.Operator):
         #get preferences
         user_label_pref = bpy.context.preferences.addons[__name__].preferences.user_label_pref
         user_labelPos_pref = bpy.context.preferences.addons[__name__].preferences.user_labelPos_pref
-        user_sceneLib_pref = bpy.context.preferences.addons[__name__].preferences.user_sceneLib_pref
+        #user_sceneLib_pref = bpy.context.preferences.addons[__name__].preferences.user_sceneLib_pref
         storeInAssetBrowser_pref = bpy.context.preferences.addons[__name__].preferences.storeInAssetBrowser_pref
 
         if len(bpy.context.selected_objects)>0:
@@ -402,10 +402,11 @@ class OBJECT_OT_instcoll_colltoinstancecollection(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     # # redo panel = user interraction
-    
+    use_prefLabel_prop: bpy.props.BoolProperty(name = 'Use Collection Label',description = "use the label from addon preferences",default = True)
     coll_color_prop : bpy.props.EnumProperty(items = coll_color_options,name = "Collection color",description = "Give the created collection a random color",default = 1,)
     coll_center_prop : bpy.props.EnumProperty(items = coll_center_options,name = "Collection center",description = "collection center",default=2,)
     coll_original_location: bpy.props.BoolProperty(name = 'Keep original location',description = "Keep the original location of selected elements",default = True)
+    storeAsset_prop: bpy.props.BoolProperty(name = 'Store in Asset Browser',description = "if checked, store in asset browser",default = True)
     #instcol_storeintotherandomlibrary: bpy.props.BoolProperty(name = 'Store copy into "Randomize Library"',description = "Store the newly created collection into the randomize library",default = False)
     #suffix_randomizelibrary : bpy.props.StringProperty(name = "RandomizeLibrary_",description = "add a suffix to the library collection",default="ALL",    ) 
     #coll_center_prop : bpy.props.EnumProperty(items = coll_center_options,name = "Collection center",description = "collection center",default=2,)
@@ -413,7 +414,13 @@ class OBJECT_OT_instcoll_colltoinstancecollection(bpy.types.Operator):
     def execute(self, context):
         print(f"\n {separator} Begin {Addon_Name} - {tool_f} {separator} \n")
 
+        user_label_pref = bpy.context.preferences.addons[__name__].preferences.user_label_pref
+        user_labelPos_pref = bpy.context.preferences.addons[__name__].preferences.user_labelPos_pref
+        #user_sceneLib_pref = bpy.context.preferences.addons[__name__].preferences.user_sceneLib_pref
+        storeInAssetBrowser_pref = bpy.context.preferences.addons[__name__].preferences.storeInAssetBrowser_pref
+
         coll_center_prop = self.coll_center_prop
+        storeAsset_prop = self.storeAsset_prop
         
         # get active collection
         active_coll = bpy.context.view_layer.active_layer_collection
@@ -457,6 +464,13 @@ class OBJECT_OT_instcoll_colltoinstancecollection(bpy.types.Operator):
             bpy.data.collections.remove(bpy.data.collections[coll.name])
         else:
             bpy.data.collections.remove(bpy.data.collections[active_coll.name])
+
+        # Update default coll nam regarding user pref
+        if self.use_prefLabel_prop:
+            if user_labelPos_pref == "Prefix":
+                new_coll_name = f"{user_label_pref}{new_coll_name}"
+            else : 
+                new_coll_name = f"{new_coll_name}{user_label_pref}"
 
         # create new collection
         bpy.ops.collection.create(name = new_coll_name)
@@ -518,7 +532,8 @@ class OBJECT_OT_instcoll_colltoinstancecollection(bpy.types.Operator):
         create_libraryScene_func(new_coll_name)
 
         # store in asset browser
-        storeIn_AssetBrowser_func(new_coll_name)
+        if storeAsset_prop:
+            storeIn_AssetBrowser_func(new_coll_name)
 
         # show informations
         print("selected_obj : " + str(stored_obj))
