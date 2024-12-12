@@ -18,8 +18,6 @@ This toolbox contains some helpful tools when you are using instance collection.
   - Collection Center : Every Instance collection has a kind of origin. You can choose either World Origin, 2D Cursor, Collection Center, Collection center with Z on 0
   - Store in Asset Browser : it will automatically store the instance collection as an asset. The Asset Manager has to be opened to make it work 
 
-![Sel To Inst](https://github.com/user-attachments/assets/841efa92-771d-480a-918f-a11e4e5a63ac)
-
 ![Sel to inst options](https://github.com/user-attachments/assets/eb61fd5e-965a-44f6-bdbb-840180dc4daa)
 
 ## Coll to Inst : convert selected collection into a new instance collection. Few options are available :
