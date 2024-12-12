@@ -7,7 +7,7 @@ bl_info = {
     "warning": "",
     "category": "Workflow",
     "blender": (2,91,0),
-    "version": (1,5,21)
+    "version": (1,5,3)
 }
 
 # get addon name and version to use them automaticaly in the addon
@@ -109,26 +109,38 @@ class VIEW3D_PT_instcoltoolbox_all(bpy.types.Panel):
         layout = self.layout
         # convert to instance collection
         #layout.label(text="Convert into Instance Collections")
-        rowFull = layout.row()
-        split = rowFull.split(factor=.5)
-        box = split.box()
+        #rowFull = layout.row()
+        #split = rowFull.split(factor=.5)
+        box = layout.box()
         row = box.row()
-        subsplit = row.split(factor=.5)
-        subsplit.operator("object.instcol_seltoinstancecollection",text="",icon="RESTRICT_SELECT_OFF")
-        subsplit.operator("object.instcol_colltoinstancecollection",text="",icon="OUTLINER_COLLECTION")
+        #subsplit = row.split(factor=.5)
+        #subsplit.operator("object.instcol_seltoinstancecollection",text="",icon="RESTRICT_SELECT_OFF")
+        #subsplit.operator("object.instcol_colltoinstancecollection",text="",icon="OUTLINER_COLLECTION")
+        row.operator("object.instcol_seltoinstancecollection",text="Sel to Inst",icon="RESTRICT_SELECT_OFF")
+        row.operator("object.instcol_colltoinstancecollection",text="Coll to Inst",icon="OUTLINER_COLLECTION")
         row = box.row()
-        subsplit = row.split(factor=.5)
-        subsplit.operator("object.instcol_instancecollectiontosel",text="",icon="RECOVER_LAST")
-        subsplit.operator("object.instcol_updateassetbrowser",text="",icon="ASSET_MANAGER")
-        box = split.box()
+        row.operator("object.instcol_instancecollectiontosel",text="Inst to Coll",icon="RECOVER_LAST")
+        row.operator("object.instcol_updateassetbrowser",text="Update AM",icon="ASSET_MANAGER")
         row = box.row()
-        subsplit = row.split(factor=.5)
-        subsplit.operator("object.instcol_collectioncenter",text = "",icon="LIBRARY_DATA_OVERRIDE")
-        subsplit.operator("object.instcol_renameselection",text = "",icon="SORTALPHA")
-        row = box.row()
-        subsplit = row.split(factor=.5)
-        subsplit.operator("object.instcol_meshtocollection",text="",icon="EXPERIMENTAL")
-        subsplit.label(text="")
+        row.operator("object.instcol_renameselection",text = "Rename Data",icon="SORTALPHA")
+        row.label(text="")
+        # subsplit = row.split(factor=.5)
+        # subsplit.operator("object.instcol_instancecollectiontosel",text="",icon="RECOVER_LAST")
+        # subsplit.operator("object.instcol_updateassetbrowser",text="",icon="ASSET_MANAGER")
+        # row = box.row()
+        # subsplit = row.split(factor=.5)
+        # subsplit.operator("object.instcol_renameselection",text = "",icon="SORTALPHA")
+        # subsplit.label(text="")
+        # box = layout.box()
+        # row = box.row()
+        # subsplit = row.split(factor=.5)
+        # subsplit.operator("object.instcol_collectioncenter",text = "",icon="LIBRARY_DATA_OVERRIDE")
+        # subsplit.operator("object.instcol_renameselection",text = "",icon="SORTALPHA")
+        # row = box.row()
+        # subsplit = row.split(factor=.5)
+        # # subsplit.operator("object.instcol_meshtocollection",text="",icon="EXPERIMENTAL")
+        # subsplit.label(text="")
+        # subsplit.label(text="")
         
 
 # class VIEW3D_PT_instcoladdtools(bpy.types.Panel):
