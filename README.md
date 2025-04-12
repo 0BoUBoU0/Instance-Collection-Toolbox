@@ -8,7 +8,7 @@ Because Instance collections is one of the best feature of blender, allowing to 
 # What is Instance Collection toolbox for ? 
 This toolbox contains some helpful tools when you are using instance collection. The tools are : 
 
-![Tab](https://github.com/user-attachments/assets/a3bfc691-3301-4a91-929b-2e1872b633da)
+![Tab](https://github.com/user-attachments/assets/a3bfc691-3301-4a91-929b-2e1872b633da) ![Sel To Inst](https://github.com/user-attachments/assets/637a9c24-ca54-46d7-9823-a7b39ff1ef9b)
 
 ## Sel to Inst :  convert selected objects into a new instance collection. Few options are available :
   - New Collection Name : Choose your name of your Instance Collection. By default, "Random ID" will create a name with 5 random letters
@@ -31,6 +31,8 @@ This toolbox contains some helpful tools when you are using instance collection.
 
 ## Inst to Coll : The revert action of Coll to Inst :
   It will re-link the original collection in the current scene
+
+![2024-12-11-17-29-14](https://github.com/user-attachments/assets/d9392240-9e0a-44f3-9f28-80a4fdbeea9e)
 
 ## Update Asset Manager :  
   It will update the Asset Manager with all the collection in the current scene
