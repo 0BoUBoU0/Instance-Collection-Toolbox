@@ -7,7 +7,7 @@ bl_info = {
     "warning": "",
     "category": "Workflow",
     "blender": (2,91,0),
-    "version": (1,5,4)
+    "version": (1,5,41)
 }
 
 # get addon name and version to use them automaticaly in the addon
@@ -259,12 +259,13 @@ def storeIn_AssetBrowser_func(selected_coll,blender_version):
                     print("version inf 4")
                     space_data.params.asset_library_ref = 'LOCAL'
                     space_data.params.import_type = 'LINK'
+                    # Générer la prévisualisation pour l'asset
+                    bpy.ops.ed.lib_id_generate_preview({'id': bpy.data.collections[selected_coll]})
                 elif int(blender_version[0])>=4:
                     print("version 4+")
                     space_data.params.asset_library_reference = 'LOCAL'
                     space_data.params.import_method = 'LINK'
-                # Générer la prévisualisation pour l'asset
-                bpy.ops.ed.lib_id_generate_preview({'id': bpy.data.collections[selected_coll]})
+                    #bpy.ops.ed.lib_id_generate_preview(bpy.data.collections[selected_coll]) à débugger
                 sleep(.1) # a bit of time otherwise preview problems
                 #break
 
