@@ -7,7 +7,7 @@ bl_info = {
     "warning": "",
     "category": "Workflow",
     "blender": (2,91,0),
-    "version": (1,5,41)
+    "version": (1,5,64)
 }
 
 # get addon name and version to use them automaticaly in the addon
@@ -68,6 +68,8 @@ class INSTCOLL_Preferences(bpy.types.AddonPreferences):
     user_sceneLib_checkbox_pref : bpy.props.BoolProperty (name="",description="Store original instance collections into a scene",default=True) 
     user_sceneLib_pref : bpy.props.StringProperty(name="Scene Library", default=default_sceneLib_name, description="default scene for automatic library")
     storeInAssetBrowser_pref : bpy.props.BoolProperty(name="Store in Asset Browser", default=True, description="store into the asset browser")
+    usetinyrig_pref : bpy.props.BoolProperty(name="Auto rig", default=True, description="use the tiny rig addon")
+    use_nonselectable_pref : bpy.props.BoolProperty(name="New collection non selectable", default=False, description="if checked, the new collection will be unselectable")
 
     def draw(self, context):
         layout = self.layout
@@ -80,6 +82,13 @@ class INSTCOLL_Preferences(bpy.types.AddonPreferences):
         split.prop(self, "user_sceneLib_checkbox_pref")
         split.prop(self, "user_sceneLib_pref")
         row.prop(self, "storeInAssetBrowser_pref")
+        for addon in bpy.context.preferences.addons.keys():
+            if "tiny_rig" in addon:
+                row = layout.row()
+                row.prop(self, "usetinyrig_pref")
+                if self.usetinyrig_pref:
+                    row.prop(self, "use_nonselectable_pref")
+
 
 ### create property ###
 class INSTCOLL_properties (bpy.types.PropertyGroup):
@@ -269,6 +278,22 @@ def storeIn_AssetBrowser_func(selected_coll,blender_version):
                 sleep(.1) # a bit of time otherwise preview problems
                 #break
 
+def tinyrig(coll_name):
+    # use tiny rig
+    if bpy.context.preferences.addons[__name__].preferences.usetinyrig_pref:
+        for addon in bpy.context.preferences.addons.keys():
+            if "tiny_rig" in addon:
+                bpy.ops.tinyrig.rig()
+                new_rig = bpy.data.objects[f'{coll_name}-RIG_TinyRig']
+                new_rig.pose.bones['CTRL_root']['visual_scale'] *= 2
+                bpy.context.view_layer.objects.active = new_rig
+                # switch temporarly to pose mode to update
+                bpy.ops.object.posemode_toggle()
+                bpy.ops.object.posemode_toggle()
+                if bpy.context.preferences.addons[__name__].preferences.use_nonselectable_pref:
+                    bpy.data.objects[f'{coll_name}'].hide_select = True
+
+
 
 ### create operators ###
 # create operator UPPER_OT_lower and idname = upper.lower       
@@ -284,7 +309,7 @@ class OBJECT_OT_instcoll_seltoinstancecollection(bpy.types.Operator):
     use_prefLabel_prop: bpy.props.BoolProperty(name = 'Use Collection Label',description = "use the label from addon preferences",default = True)
     coll_color_prop : bpy.props.EnumProperty(items = coll_color_options, name = "Collection color", description = "Give the created collection a random color", default = 0,)
     coll_original_location_prop: bpy.props.BoolProperty(name = 'Keep original location',description = "Keep the original location of selected elements",default = True)
-    coll_center_prop : bpy.props.EnumProperty(items = coll_center_options,name = "Collection center",description = "collection center",default=2,)
+    coll_center_prop : bpy.props.EnumProperty(items = coll_center_options,name = "Collection center",description = "collection center",default=0,)
     storeAsset_prop: bpy.props.BoolProperty(name = 'Store in Asset Browser',description = "if checked, store in asset browser",default = True)
     
     def execute(self, context):
@@ -402,7 +427,11 @@ class OBJECT_OT_instcoll_seltoinstancecollection(bpy.types.Operator):
                 storeIn_AssetBrowser_func(new_coll_name,blender_version)
 
             # reset the collection name
-            self.instcol_newColName = default_coll_name        
+            self.instcol_newColName = default_coll_name
+
+            # use tiny rig
+            tinyrig(new_coll_name)
+
 
             # show informations
             print("selected_obj : " + str(selected_obj))
@@ -555,6 +584,9 @@ class OBJECT_OT_instcoll_colltoinstancecollection(bpy.types.Operator):
         # store in asset browser
         if storeAsset_prop:
             storeIn_AssetBrowser_func(new_coll_name,blender_version)
+
+        # use tiny rig
+        tinyrig(new_coll_name)
 
         # show informations
         print("selected_obj : " + str(stored_obj))
