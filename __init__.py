@@ -7,7 +7,7 @@ bl_info = {
     "warning": "",
     "category": "Workflow",
     "blender": (2,91,0),
-    "version": (1,5,64)
+    "version": (1,5,71)
 }
 
 # get addon name and version to use them automaticaly in the addon
@@ -131,10 +131,15 @@ class VIEW3D_PT_instcoltoolbox_all(bpy.types.Panel):
         row.operator("object.instcol_colltoinstancecollection",text="Coll to Inst",icon="OUTLINER_COLLECTION")
         row = box.row()
         row.operator("object.instcol_instancecollectiontosel",text="Inst to Coll",icon="RECOVER_LAST")
-        row.operator("object.instcol_updateassetbrowser",text="Update AM",icon="ASSET_MANAGER")
+        row.operator("object.instcol_updateassetbrowser",text="Update Asset Manager",icon="ASSET_MANAGER")
         row = box.row()
         row.operator("object.instcol_renameselection",text = "Rename Data",icon="SORTALPHA")
-        row.label(text="")
+        # row.label(text="")
+        row.operator("object.instcol_meshtocollection",text="Objects to Empties",icon="EXPERIMENTAL")
+        # row.label(text="")
+        # box = layout.box()
+        # row = box.row()
+        
         # subsplit = row.split(factor=.5)
         # subsplit.operator("object.instcol_instancecollectiontosel",text="",icon="RECOVER_LAST")
         # subsplit.operator("object.instcol_updateassetbrowser",text="",icon="ASSET_MANAGER")
@@ -293,7 +298,34 @@ def tinyrig(coll_name):
                 if bpy.context.preferences.addons[__name__].preferences.use_nonselectable_pref:
                     bpy.data.objects[f'{coll_name}'].hide_select = True
 
-
+def coll_center(sel_objs_list,coll_center_prop,new_coll_name):
+    sel_loc_x = []
+    sel_loc_y = []
+    sel_loc_z = []
+    # create selection offset from each collection
+    if len(sel_objs_list)>0:
+        if coll_center_prop == "Coll_except_Z" or coll_center_prop == "Collection Center": 
+            for obj in sel_objs_list:
+                sel_loc_x.append(obj.location.x)
+                sel_loc_y.append(obj.location.y)
+                sel_loc_z.append(obj.location.z)
+            med_sel_x = mean(sel_loc_x)
+            med_sel_y = mean(sel_loc_y)
+            med_sel_z = mean(sel_loc_z)
+            if coll_center_prop == "Coll_except_Z":
+                coord_z = 0
+            if coll_center_prop == "Collection Center":
+                coord_z = med_sel_z
+        elif coll_center_prop == "2D Cursor":
+            med_sel_x =  bpy.context.scene.cursor.location[0]
+            med_sel_y = bpy.context.scene.cursor.location[1]
+            coord_z = bpy.context.scene.cursor.location[2]
+        elif coll_center_prop == "World":
+            med_sel_x = 0
+            med_sel_y = 0
+            coord_z = 0
+            bpy.data.collections[new_coll_name].instance_offset = (0,0,0)
+        bpy.data.collections[new_coll_name].instance_offset = (med_sel_x,med_sel_y,coord_z)
 
 ### create operators ###
 # create operator UPPER_OT_lower and idname = upper.lower       
@@ -338,9 +370,9 @@ class OBJECT_OT_instcoll_seltoinstancecollection(bpy.types.Operator):
             new_coll_id = new_coll_id_func()
             
             # save selection set
-            selected_obj = []
+            sel_objs_list = []
             for obj in bpy.context.selected_objects:
-                selected_obj.append(obj)
+                sel_objs_list.append(obj)
                 
             # set scene collection as active collection
             scene_collection = bpy.context.view_layer.layer_collection
@@ -362,7 +394,7 @@ class OBJECT_OT_instcoll_seltoinstancecollection(bpy.types.Operator):
                     new_coll_name = f"{new_coll_name}{user_label_pref}"
 
             # unlink selected objects from their collection, and put them in scene collection
-            for obj in selected_obj:
+            for obj in sel_objs_list:
                 if obj in bpy.context.scene.collection.objects.values():
                     bpy.context.scene.collection.objects.unlink(bpy.data.objects[obj.name])
             for obj in bpy.context.selected_objects:
@@ -372,14 +404,14 @@ class OBJECT_OT_instcoll_seltoinstancecollection(bpy.types.Operator):
             # create new collection
             bpy.ops.collection.create(name = new_coll_name)
             bpy.context.scene.collection.children.link(bpy.data.collections[new_coll_name])
-            for obj in selected_obj:
+            for obj in sel_objs_list:
                 bpy.data.collections[new_coll_name].objects.link(bpy.data.objects[obj.name])
 
             # create selection offset from each collection
-            if len(selected_obj)>0:
+            if len(sel_objs_list)>0:
                 if coll_center_prop == "Coll_except_Z" or coll_center_prop == "Collection Center": 
                 
-                    for obj in selected_obj:
+                    for obj in sel_objs_list:
                         sel_loc_x.append(obj.location.x)
                         sel_loc_y.append(obj.location.y)
                         sel_loc_z.append(obj.location.z)
@@ -434,7 +466,7 @@ class OBJECT_OT_instcoll_seltoinstancecollection(bpy.types.Operator):
 
 
             # show informations
-            print("selected_obj : " + str(selected_obj))
+            print("sel_objs_list : " + str(sel_objs_list))
             print("new_coll_name : " + str(new_coll_name))
 
         print(f"\n {separator} {Addon_Name} - {tool_f} Finished {separator} \n")
@@ -599,7 +631,7 @@ class OBJECT_OT_instcoll_colltoinstancecollection(bpy.types.Operator):
     def invoke(self, context, event):
         return context.window_manager.invoke_props_dialog(self)    
 
-# create operator UPPER_OT_lower and idname = upper.lower       
+
 class OBJECT_OT_instcoll_instancecollectiontosel(bpy.types.Operator):
     bl_idname = 'object.instcol_instancecollectiontosel'
     bl_label = "Get collection back"
@@ -632,7 +664,7 @@ class OBJECT_OT_instcoll_instancecollectiontosel(bpy.types.Operator):
         print(f"\n {separator} {Addon_Name} - {tool_i} Finished {separator} \n")        
         return {"FINISHED"}
 
-# create operator UPPER_OT_lower and idname = upper.lower
+
 class OBJECT_OT_instcoll_updateAssetBrowser(bpy.types.Operator):
     bl_idname = 'object.instcol_updateassetbrowser'
     bl_label = "Update Asset Browser"
@@ -661,7 +693,7 @@ class OBJECT_OT_instcoll_updateAssetBrowser(bpy.types.Operator):
         print(f"\n {separator} {Addon_Name} - {tool_f} Finished {separator} \n")
         return {"FINISHED"}
 
-# create operator UPPER_OT_lower and idname = upper.lower
+
 class OBJECT_OT_instcoll_renameselection(bpy.types.Operator):
     bl_idname = 'object.instcol_renameselection'
     bl_label = "Rename selection from its data"
@@ -701,99 +733,99 @@ class OBJECT_OT_instcoll_renameselection(bpy.types.Operator):
         
         return {"FINISHED"}
 
-# # create operator UPPER_OT_lower and idname = upper.lower
-# class OBJECT_OT_instcoll_collectioncenter(bpy.types.Operator):
-#     bl_idname = 'object.instcol_collectioncenter'
-#     bl_label = "Set collections center from selection"
-#     bl_description = "Each collection center will be set by the center of the selection"
-#     bl_options = {"REGISTER", "UNDO"}
+
+class OBJECT_OT_instcoll_collectioncenter(bpy.types.Operator):
+    bl_idname = 'object.instcol_collectioncenter'
+    bl_label = "Set collections center from selection"
+    bl_description = "Each collection center will be set by the center of the selection"
+    bl_options = {"REGISTER", "UNDO"}
     
-#     z_onFloor : bpy.props.BoolProperty(
-#             name = "Z centered ",
-#             description = "Z coordinates centered or at 0",
-#             default=False,    
-#     )
+    z_onFloor : bpy.props.BoolProperty(
+            name = "Z centered ",
+            description = "Z coordinates centered or at 0",
+            default=False,    
+    )
     
-#     def execute(self, context):             
-#         print(f"\n {separator} Begin {Addon_Name} - {tool_b} {separator} \n")
+    def execute(self, context):             
+        print(f"\n {separator} Begin {Addon_Name} - {tool_b} {separator} \n")
                 
-#         # get media loc x, y and z from selection
-#         sel_set = bpy.context.selected_objects
+        # get media loc x, y and z from selection
+        sel_set = bpy.context.selected_objects
         
-#         # create collection list from selected objects
-#         cols_from_sel = []
-#         for obj in sel_set:
-#             if obj.users_collection != (bpy.data.scenes[bpy.context.scene.name].collection,):
-#                 if bpy.data.objects[obj.name].users_collection[0].name not in cols_from_sel:
-#                     cols_from_sel.append(bpy.data.objects[obj.name].users_collection[0].name)
+        # create collection list from selected objects
+        cols_from_sel = []
+        for obj in sel_set:
+            if obj.users_collection != (bpy.data.scenes[bpy.context.scene.name].collection,):
+                if bpy.data.objects[obj.name].users_collection[0].name not in cols_from_sel:
+                    cols_from_sel.append(bpy.data.objects[obj.name].users_collection[0].name)
         
-#         sel_loc_x = []
-#         sel_loc_y = []
-#         sel_loc_z = []
+        sel_loc_x = []
+        sel_loc_y = []
+        sel_loc_z = []
         
-#         # create selection offset from each collection
-#         for col in cols_from_sel:
-#             sel_loc_x.clear()
-#             sel_loc_y.clear()
-#             sel_loc_z.clear()
-#             for obj in sel_set and bpy.data.collections[col].objects.values():
-#                 sel_loc_x.append(obj.location.x)
-#                 sel_loc_y.append(obj.location.y)
-#                 sel_loc_z.append(obj.location.z)
-#             med_sel_x = mean(sel_loc_x)
-#             med_sel_y = mean(sel_loc_y)
-#             med_sel_z = mean(sel_loc_z)
-#             if self.z_onFloor == False:
-#                 coord_z = 0
-#             else:
-#                 coord_z = med_sel_z
-#             bpy.data.collections[col].instance_offset = (med_sel_x,med_sel_y,coord_z)
+        # create selection offset from each collection
+        for col in cols_from_sel:
+            sel_loc_x.clear()
+            sel_loc_y.clear()
+            sel_loc_z.clear()
+            for obj in sel_set and bpy.data.collections[col].objects.values():
+                sel_loc_x.append(obj.location.x)
+                sel_loc_y.append(obj.location.y)
+                sel_loc_z.append(obj.location.z)
+            med_sel_x = mean(sel_loc_x)
+            med_sel_y = mean(sel_loc_y)
+            med_sel_z = mean(sel_loc_z)
+            if self.z_onFloor == False:
+                coord_z = 0
+            else:
+                coord_z = med_sel_z
+            bpy.data.collections[col].instance_offset = (med_sel_x,med_sel_y,coord_z)
  
-#         print(f"offset collection done on {cols_from_sel}")
-#         print(f"\n {separator} {Addon_Name} - {tool_b} Finished {separator} \n")
+        print(f"offset collection done on {cols_from_sel}")
+        print(f"\n {separator} {Addon_Name} - {tool_b} Finished {separator} \n")
  
-#         return {"FINISHED"}
+        return {"FINISHED"}
 
-# # create operator UPPER_OT_lower and idname = upper.lower        
-# class OBJECT_OT_instcoll_meshtocollection(bpy.types.Operator):
-#     bl_idname = 'object.instcol_meshtocollection'
-#     bl_label = "Convert Mesh to Instance Collection"
-#     bl_description = "Convert selected meshes to empty instance collection"
-#     bl_options = {"REGISTER", "UNDO"}
+# create operator UPPER_OT_lower and idname = upper.lower        
+class OBJECT_OT_instcoll_meshtocollection(bpy.types.Operator):
+    bl_idname = 'object.instcol_meshtocollection'
+    bl_label = "Convert Mesh to Instance Collection"
+    bl_description = "Convert selected meshes to empty instance collection"
+    bl_options = {"REGISTER", "UNDO"}
 
-#     def execute(self, context):
-#         print(f"\n {separator} Begin {Addon_Name} - {tool_c} {separator} \n")
+    def execute(self, context):
+        print(f"\n {separator} Begin {Addon_Name} - {tool_c} {separator} \n")
             
-#         # get list of selected objects
-#         sel_set = []
-#         meshes_sel_set = []
-#         for obj in bpy.context.selected_objects:
-#             sel_set.append(obj)
-#             if obj.type == 'MESH':
-#                 meshes_sel_set.append(obj)
+        # get list of selected objects
+        sel_set = []
+        meshes_sel_set = []
+        for obj in bpy.context.selected_objects:
+            sel_set.append(obj)
+            if obj.type == 'MESH':
+                meshes_sel_set.append(obj)
         
-#         # Convert objects to exmpty instance collection
-#         if len(meshes_sel_set) > 0 :
-#             sel_set = []
-#             for obj in meshes_sel_set:
-#                 bpy.ops.object.add()
-#                 empty = bpy.context.active_object
-#                 empty.name = obj.name
-#                 empty.matrix_world = obj.matrix_world
-#                 bpy.data.objects[empty.name].instance_type = 'COLLECTION'
-#                 empty.instance_collection = None
-#                 bpy.data.objects.remove(obj, do_unlink=True)
-#                 sel_set.append(empty)     
+        # Convert objects to exmpty instance collection
+        if len(meshes_sel_set) > 0 :
+            sel_set = []
+            for obj in meshes_sel_set:
+                bpy.ops.object.add()
+                empty = bpy.context.active_object
+                empty.name = obj.name
+                empty.matrix_world = obj.matrix_world
+                bpy.data.objects[empty.name].instance_type = 'COLLECTION'
+                empty.instance_collection = None
+                bpy.data.objects.remove(obj, do_unlink=True)
+                sel_set.append(empty)     
                 
-#         # get selection from before
-#         if len(sel_set) > 0:
-#             for obj in sel_set:
-#                 obj.select_set(True)
+        # get selection from before
+        if len(sel_set) > 0:
+            for obj in sel_set:
+                obj.select_set(True)
         
-#         print(f"Meshes converted in instance collections : {sel_set}")
-#         print(f"\n {separator} {Addon_Name} - {tool_c} Finished {separator} \n")
+        print(f"Meshes converted in instance collections : {sel_set}")
+        print(f"\n {separator} {Addon_Name} - {tool_c} Finished {separator} \n")
         
-#         return {"FINISHED"}
+        return {"FINISHED"}
         
 
 
@@ -804,8 +836,8 @@ classes = (
     VIEW3D_PT_instcoltoolbox_all,
     # VIEW3D_PT_instcoladdtools,
     OBJECT_OT_instcoll_renameselection,
-    #OBJECT_OT_instcoll_collectioncenter,
-    #OBJECT_OT_instcoll_meshtocollection,
+    OBJECT_OT_instcoll_collectioncenter,
+    OBJECT_OT_instcoll_meshtocollection,
     OBJECT_OT_instcoll_seltoinstancecollection,
     OBJECT_OT_instcoll_colltoinstancecollection,
     OBJECT_OT_instcoll_instancecollectiontosel,
